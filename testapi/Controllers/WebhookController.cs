@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace testapi.Controllers
 {
@@ -18,8 +19,6 @@ namespace testapi.Controllers
 
             Console.WriteLine($"Mode: {mode}, Token: {token}, Challenge: {challenge}");
 
-
-            // Verify the mode and token
             if (mode == "subscribe" && token == "test")
             {
                 Console.WriteLine("Webhook verified successfully");
@@ -30,14 +29,29 @@ namespace testapi.Controllers
             return BadRequest("Verification failed");
         }
 
-        // ✅ Facebook Webhook Event Notification (POST request)
         [HttpPost]
-        public IActionResult Receive([FromBody] object payload)
+        public async Task<IActionResult> ReceiveWebhook()
         {
-            // Log or process the callback payload
-            Console.WriteLine($"Webhook received: {payload}");
+            try
+            {
+                using var reader = new StreamReader(Request.Body);
+                var requestBody = await reader.ReadToEndAsync();
 
-            return Ok(new { status = "success" });
+                if (string.IsNullOrWhiteSpace(requestBody))
+                {
+                    Console.WriteLine("⚠️ Empty request body received");
+                    return Ok();
+                }
+
+                Console.WriteLine($"Received webhook payload: {requestBody}");
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error processing webhook: {ex.Message}");
+                return StatusCode(500, $"Error processing webhook: {ex.Message}");
+            }
         }
     }
 }
